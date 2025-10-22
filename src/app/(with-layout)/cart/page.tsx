@@ -1,151 +1,230 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-"use client"
-import { Breadcrumb, ConfigProvider, Input } from "antd";
+
+"use client";
+
+import { Breadcrumb, Checkbox, ConfigProvider, message, notification } from "antd";
 import Link from "next/link";
-// import productImage from '../../../../public/products/monitor.png'
 import Image from "next/image";
 import { RiDeleteBin6Line } from "react-icons/ri";
-import { IoIosArrowDown, IoIosArrowUp } from "react-icons/io";
-import { useDispatch, useSelector } from "react-redux";
-import { Imageurl } from "@/utils/Imageurl";
-import { addToCart, deleteProduct, removeOne } from "@/redux/features/cart/cartSlice";
+import { useState } from "react";
+import { useDeleteCartItemMutation, useGetCartQuery } from "@/redux/features/cart/cartApi";
+import { useCreateCheckoutMutation } from "@/redux/features/checkout/checkoutApi";
+import type { CartItem as ApiCartItem } from "@/redux/features/cart/cartApi";
+import { useRouter } from "next/navigation";
+// ✅ Extend API CartItem type to include quantity for safety
+interface CartItem extends ApiCartItem {
+    quantity: number; // required in component
+}
 
 const Cart = () => {
-    const products = useSelector((state: any) => state.cart)
-    console.log(products.products);
-    const dispatch = useDispatch();
+    const { data, isLoading } = useGetCartQuery();
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [deleteCartItem] = useDeleteCartItemMutation();
+    const [createCheckout] = useCreateCheckoutMutation();
+    const [api, contextHolder] = notification.useNotification();
+    const router = useRouter();
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-[50vh]">
+                <p className="text-gray-600 dark:text-gray-200">Loading cart...</p>
+            </div>
+        );
+    }
+
+    // ✅ Map API data to include quantity if missing
+    const cartItems: CartItem[] = (data?.data || []).map((item) => ({
+        ...item,
+        quantity: item.quantity ?? 1,
+    }));
+
+    const handleSelect = (id: string, checked: boolean) => {
+        setSelectedIds((prev) =>
+            checked ? [...prev, id] : prev.filter((itemId) => itemId !== id)
+        );
+    };
+
+    const selectedItems = cartItems.filter((item) => selectedIds.includes(item.id));
+    //   const total = selectedItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+
+    const handleCheckout = async () => {
+        if (selectedItems.length === 0) {
+            if (selectedItems.length === 0) {
+                api.open({
+                    type: "warning",
+                    message: "No product is selected",
+                    description: "Please select at least one product to checkout!",
+                    placement: "topRight",
+                });
+                return;
+            }
+        }
+
+        const checkoutPayload = {
+            productIds: selectedItems.map((item) => item.productId),
+        };
+
+        try {
+            const response = await createCheckout(checkoutPayload).unwrap();
+            console.log("✅ Checkout response:", response);
+            message.success("Checkout request sent successfully!");
+            router.push("/checkout");
+        }
+
+        catch (err: unknown) {
+            console.error("❌ Checkout error:", err);
+            if (err && typeof err === "object" && "data" in err) {
+                const errorData = err as { data?: { message?: string } };
+                message.error(errorData?.data?.message || "Checkout failed");
+            } else if (err instanceof Error) {
+                message.error(err.message);
+            } else {
+                message.error("Checkout failed");
+            }
+        }
+    };
+
+    // const handleDelete = async (cartItemId: string) => {
+    //     try {
+    //         await deleteCartItem(cartItemId).unwrap();
+    //         message.success("Item deleted from cart");
+    //     } catch (err: unknown) {
+    //         console.error("❌ Delete error:", err);
+    //         const errorMessage =
+    //             (err as { data?: { message?: string } })?.data?.message || "Failed to delete cart item";
+    //         message.error(errorMessage);
+    //     }
+    // };
+
+
+    const handleDelete = async (cartItemId: string) => {
+        try {
+            await deleteCartItem(cartItemId).unwrap();
+            api.open({
+                type: "success",
+                message: "Cart",
+                description: `product has been removed from your cart`,
+                placement: "topRight",
+            });
+        } catch (err: unknown) {
+            console.error("❌ Delete error:", err);
+            const errorMessage =
+                (err as { data?: { message?: string } })?.data?.message || "Failed to delete cart item";
+            api.open({
+                type: "error",
+                message: "Cart Error",
+                description: errorMessage,
+                placement: "topRight",
+            });
+        }
+    };
+
     return (
-        <div className="container mx-auto py-16 px-3 md:px-0 ">
+        <div className="container mx-auto py-16 px-3 md:px-0">
             <Breadcrumb
                 items={[
-                    {
-                        title: <Link href={`/`}><p className="dark:text-white">Home</p></Link>,
-                    },
-                    {
-                        title: <Link className="dark:text-white" href={`/cart`}><p className="dark:text-white">Cart</p></Link>,
-                    },
+                    { title: <Link href="/"><p className="dark:text-white">Home</p></Link> },
+                    { title: <Link href="/cart"><p className="dark:text-white">Cart</p></Link> },
                 ]}
             />
-            {
-                !products.products.length ?
-                    <div className="flex flex-col items-center justify-center mt-12 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md">
-                        <h1 className="text-2xl font-semibold text-gray-800 dark:text-white mb-4">
-                            Your Cart is Empty
-                        </h1>
-                        <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-                            Looks like you haven&apos;t added anything to your cart yet. Explore our products and start shopping.
-                        </p>
-                        <Link
-                            href={`/product`}
-                            className=" px-5 md:px-6 py-2 md:py-3 bg-primary text-white text-lg font-semibold rounded-md shadow-md hover:bg-[#ec5f00] transition-all duration-200"
-                        >
-                            Shop Now
-                        </Link>
-                    </div>
 
-                    :
-                    <>
-                        <div className=" mt-8 overflow-x-scroll md:overflow-x-visible">
-                            <div className=" w-[800px] md:w-auto shadow-[0px_5px_5px_rgba(0,0,0,0.03)] dark:shadow-[2px_2px_10px_2px_rgba(255,255,255,0.1)] px-8 py-6 rounded flex justify-between items-center">
-                                <p className=" w-[100px] md:w-full dark:text-white">Product</p>
-                                <p className=" w-[100px] md:w-full text-center dark:text-white">Price</p>
-                                <p className=" w-[100px] md:w-full text-center dark:text-white">Quantity</p>
-                                <p className=" w-[100px] md:w-full text-end dark:text-white">Subtotal</p>
-                            </div>
-                            {/* table body🙀 While integrating api just run a map here🫡 */}
-                            {
-                                products.products.map((product: any) => {
-                                    return (
-                                        <div key={product._id} className="  overflow-x-scroll  md:overflow-x-visible w-[800px] md:w-auto shadow-[0px_5px_5px_rgba(0,0,0,0.03)] dark:shadow-[2px_2px_10px_2px_rgba(255,255,255,0.1)] px-8 py-6 rounded flex justify-between items-center mt-4">
-                                            <div className=" flex items-center gap-5 w-[100px] md:w-full">
-                                                <Image src={`${Imageurl}/${product.images[0]}`} alt="img" width={200} height={200} className=" w-14" />
-                                                <h1 className=" dark:text-white text-xl">{product?.name}</h1>
-                                            </div>
-                                            <div className="w-[100px] md:w-full flex justify-center">
-                                                <p className=" dark:text-white">${product?.price}</p>
-                                            </div>
-
-                                            <div className="w-[100px] md:w-full flex justify-center">
-                                                <div className=" w-[80px] h-[50px] border-[2px] border-[#999999] rounded-lg flex justify-between items-center px-3">
-                                                    <div>
-                                                        <h3 className=" text-lg font-semibold dark:text-white">{product.quantity}</h3>
-                                                    </div>
-                                                    <div className="">
-                                                        <IoIosArrowUp onClick={() => dispatch(addToCart(product))} size={20} className=" cursor-pointer dark:text-white" />
-                                                        <IoIosArrowDown onClick={() => dispatch(removeOne(product))} size={20} className=" cursor-pointer dark:text-white" />
-                                                    </div>
-
-                                                </div>
-                                            </div>
-
-                                            <div className=" flex items-center gap-5 w-[100px] md:w-full justify-end">
-                                                <p className=" dark:text-white">${product.price * product.quantity}</p>
-                                                <RiDeleteBin6Line onClick={() => dispatch(deleteProduct(product))} size={25} className=" cursor-pointer dark:text-white" />
-                                            </div>
-                                        </div>
-                                    )
-                                })
-                            }
+            {!cartItems.length ? (
+                <div className="flex flex-col items-center justify-center mt-12 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md">
+                    <h1 className="text-2xl font-semibold text-gray-800 dark:text-white mb-4">
+                        Your Cart is Empty
+                    </h1>
+                    <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
+                        Looks like you haven&apos;t added anything yet.
+                    </p>
+                    <Link
+                        href="/product"
+                        className="px-5 md:px-6 py-2 md:py-3 bg-primary text-white text-lg font-semibold rounded-md shadow-md hover:bg-[#ec5f00] transition-all duration-200"
+                    >
+                        Shop Now
+                    </Link>
+                </div>
+            ) : (
+                <>
 
 
+                    {/* Table Header */}
+                    <div className="mt-8 overflow-x-auto">
+                        <div className="w-full shadow px-4 py-3 rounded flex items-center bg-gray-100 dark:bg-gray-800">
+                            <div className="w-16 text-center dark:text-white">Select</div>
+                            <div className="flex-1 text-left dark:text-white">Product</div>
+                            <div className="w-24 text-center dark:text-white">Price</div>
+                            <div className="w-24 text-center dark:text-white">Quantity</div>
+                            <div className="w-28 text-center dark:text-white">Subtotal</div>
+                            <div className="w-16"></div> {/* For delete icon */}
                         </div>
-                        <div className=" mt-10 flex flex-col lg:flex-row ">
-                            <div className=" flex items-start">
-                                <ConfigProvider
-                                    theme={{
-                                        components: {
-                                            Input: {
-                                                "colorBorder": "rgb(67,67,67)",
-                                                "activeBorderColor": "rgb(67,67,67)",
-                                                "hoverBorderColor": "rgb(67,67,67)",
-                                                "colorPrimary": "rgb(67,67,67)",
-                                                "controlHeight": 46
-                                            },
-                                        },
-                                    }}
+
+                        {/* Table Body */}
+                        {cartItems.map((item: CartItem) => {
+                            const checked = selectedIds.includes(item.id);
+                            return (
+                                <div
+                                    key={item.id}
+                                    className={`w-full shadow-[0px_5px_5px_rgba(0,0,0,0.03)] dark:shadow-[2px_2px_10px_2px_rgba(255,255,255,0.1)] px-4 py-3 rounded flex items-center mt-2 ${checked ? "bg-gray-50 dark:bg-gray-900" : "bg-white dark:bg-transparent"
+                                        }`}
                                 >
-                                    <Input placeholder="Coupon Code" style={{ width: "300px" }} />
-                                </ConfigProvider>
-
-                                <button className=" bg-primary w-48 py-3 rounded text-white cursor-pointer ml-3">Apply Coupon</button>
-                            </div>
-                            <div className=" w-full flex lg:justify-end mt-8 lg:mt-0">
-                                <div className=" w-full sm:w-[450px] ">
-                                    <div className="border border-gray-600 dark:border-white rounded-md p-6">
-                                        <h2 className="text-xl font-medium mb-4 dark:text-white">Cart Total</h2>
-
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-gray-700 dark:text-white">Subtotal:</span>
-                                                <span className="font-medium dark:text-white">${products.total}</span>
-                                            </div>
-
-                                            <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
-                                                <span className="text-gray-700 dark:text-white">Shipping:</span>
-                                                <span className="text-gray-700 dark:text-white">Free</span>
-                                            </div>
-
-                                            <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
-                                                <span className="text-gray-700 font-medium dark:text-white">Total:</span>
-                                                <span className="font-medium dark:text-white">${products.total}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-6">
-                                            <Link href={`/checkout`}>
-                                                <button className="w-full cursor-pointer bg-primary text-white font-medium py-2.5 rounded">
-                                                    Proceed to checkout
-                                                </button>
-                                            </Link>
-                                        </div>
+                                    <div className="w-16 text-center">
+                                        <ConfigProvider
+                                            theme={{
+                                                token: {
+                                                    colorPrimary: "#ec5f00", // your primary color
+                                                },
+                                                components: {
+                                                    Checkbox: {
+                                                        colorPrimary: "#ec5f00", // primary color for checked state
+                                                    },
+                                                },
+                                            }}
+                                        >
+                                            <Checkbox
+                                                checked={checked}
+                                                onChange={(e) => handleSelect(item.id, e.target.checked)}
+                                            />
+                                        </ConfigProvider>
+                                    </div>
+                                    <div className="flex-1 flex items-center gap-4">
+                                        <Image
+                                            src={item.product.productImages?.[0] || "/no-image.jpg"}
+                                            alt={item.product.productName}
+                                            width={60}
+                                            height={60}
+                                            className="rounded-md"
+                                        />
+                                        <span className="dark:text-white">{item.product.productName}</span>
+                                    </div>
+                                    <div className="w-24 text-center dark:text-white">${item.product.price}</div>
+                                    <div className="w-24 text-center dark:text-white">{item.quantity}</div>
+                                    <div className="w-28 text-center dark:text-white">
+                                        ${(item.product.price * item.quantity).toFixed(2)}
+                                    </div>
+                                    <div className="w-16 text-center">
+                                        {contextHolder}
+                                        <RiDeleteBin6Line
+                                            onClick={() => handleDelete(item.productId)}
+                                            size={22}
+                                            className="cursor-pointer dark:text-white"
+                                        />
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </>
-            }
+                            );
+                        })}
+                    </div>
 
+                    {/* Footer */}
+                    <div className="mt-6 flex justify-end">
+                        <button
+                            onClick={handleCheckout}
+                            className="w-48 bg-primary text-white py-3 rounded font-medium"
+                        >
+                            Proceed with Selected
+                        </button>
+                    </div>
 
+                </>
+            )}
         </div>
     );
 };
