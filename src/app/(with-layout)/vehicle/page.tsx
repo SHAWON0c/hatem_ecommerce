@@ -1,121 +1,300 @@
-"use client"
 
-import { Input } from "antd"
-import Image from "next/image"
-import { useState } from "react"
+// "use client";
+
+// import { useState } from "react";
+// import { Input } from "antd";
+// import Image from "next/image";
+// import { useSearchParams } from "next/navigation";
+// import { useGetProductByEngineQuery } from "@/redux/features/products/productsApi";
+
+// // --- Types ---
+// interface Product {
+//   id: string;
+//   productName: string;
+//   productImages: string[];
+//   price: number;
+//   brandName: string;
+// }
+
+// interface Category {
+//   id: string;
+//   name: string;
+//   iconUrl: string;
+//   products: Product[];
+// }
+
+// interface Vehicle {
+//   engineId: string;
+//   hp: number;
+//   kw: number;
+//   ccm: number;
+//   engineCode: string;
+//   generationId: string;
+//   generationName: string;
+//   modelId: string;
+//   modelName: string;
+//   brandId: string;
+//   brandName: string;
+// }
+
+// interface VehicleProductsData {
+//   vehicle: Vehicle;
+//   categories: Category[];
+// }
+
+// interface VehicleProductsApiResponse {
+//   success: boolean;
+//   statusCode: number;
+//   message: string;
+//   data: VehicleProductsData;
+// }
+
+// // --- Component ---
+// export default function VehicleProductsPage() {
+//   const [brandFilter, setBrandFilter] = useState("");
+//   const searchParams = useSearchParams();
+//   const engineId = searchParams.get("engineId") || "";
+
+//   // Type the API response
+//   const { data: apiResponse, isLoading, isError } =
+//     useGetProductByEngineQuery(engineId) as {
+//       data?: VehicleProductsApiResponse;
+//       isLoading: boolean;
+//       isError: boolean;
+//     };
+
+//   if (isLoading) return <p>Loading...</p>;
+//   if (isError || !apiResponse?.data) return <p>Failed to load products.</p>;
+
+//   const { vehicle, categories } = apiResponse.data;
+
+//   const filterByBrand = (products: Product[]) =>
+//     brandFilter
+//       ? products.filter((p) =>
+//           p.brandName.toLowerCase().includes(brandFilter.toLowerCase())
+//         )
+//       : products;
+
+//   return (
+//     <main className="min-h-screen bg-white p-8 container mx-auto">
+//       {/* Vehicle Info */}
+//       <h1 className="text-3xl font-bold text-slate-900 mb-8">
+//         {vehicle.brandName} {vehicle.modelName} ({vehicle.engineCode})
+//       </h1>
+
+//       <div className="flex gap-16">
+//         {/* Sidebar */}
+//         <div className="w-80 flex-shrink-0">
+//           <div className="border border-slate-300 rounded p-6">
+//             <label className="block text-sm font-semibold text-slate-900 mb-4">
+//               Filter Brand:
+//             </label>
+//             <Input
+//               type="text"
+//               placeholder="Enter brand"
+//               value={brandFilter}
+//               onChange={(e) => setBrandFilter(e.target.value)}
+//               className="w-full border-slate-300 mb-6"
+//             />
+//             <button
+//               onClick={() => setBrandFilter("")}
+//               className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+//             >
+//               Show All
+//             </button>
+//           </div>
+//         </div>
+
+//         {/* Main Grid */}
+//         <div className="flex-1 space-y-8">
+//           {categories.map((category: Category) => (
+//             <div key={category.id}>
+//               {/* Category Header */}
+//               <div className="flex items-center gap-4 mb-4">
+//                 <h2 className="text-xl font-semibold">{category.name}</h2>
+//               </div>
+
+//               {/* Products Grid */}
+//               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+//                 {filterByBrand(category.products).map((product: Product) => (
+//                   <div
+//                     key={product.id}
+//                     className="border rounded p-3 flex flex-col hover:shadow-lg transition"
+//                   >
+//                     <Image
+//                       src={product.productImages[0] || "/placeholder.svg"}
+//                       alt={product.productName}
+//                       width={300}
+//                       height={128}
+//                       className="object-cover rounded mb-2"
+//                     />
+//                     <h3 className="font-medium text-sm mb-1">{product.productName}</h3>
+//                     <p className="text-xs text-gray-500 mb-1">Brand: {product.brandName}</p>
+//                     <p className="font-semibold text-sm">${product.price.toFixed(2)}</p>
+//                   </div>
+//                 ))}
+//               </div>
+//             </div>
+//           ))}
+//         </div>
+//       </div>
+//     </main>
+//   );
+// }
 
 
-export default function Home() {
-  const [brand, setBrand] = useState("")
 
-  const categories = [
-    {
-      title: "Body",
-      items: ["Body Parts/Wing/Bumper", "Fuel Tank/Parts", "Headlight/Parts", "..."],
-      image: "/car-body-parts.jpg",
-    },
-    {
-      title: "Braking System",
-      items: ["Brake Caliper", "Disc Brake"],
-      image: "/red-brake-caliper.jpg",
-    },
-    {
-      title: "Cooling System",
-      items: ["Switch/Sensor", "Water Pump/Gasket"],
-      image: "/radiator-cooling-system.jpg",
-    },
-    {
-      title: "Electrics",
-      items: ["Headlight/Parts"],
-      image: "/car-battery-electrical.jpg",
-    },
-    {
-      title: "Engine",
-      items: ["Cylinder Head/Attachment Parts", "Engine Air Supply", "Gaskets"],
-      image: "/car-engine-motor.jpg",
-    },
-    {
-      title: "Filters",
-      items: ["Air Filter"],
-      image: "/air-filter-yellow.jpg",
-    },
-    {
-      title: "Fuel Supply System",
-      items: ["Pump/Accessories"],
-      image: "/fuel-pump-gauge.jpg",
-    },
-    {
-      title: "Maintenance Service Parts",
-      items: ["Additional Repairs", "Service Intervals"],
-      image: "/wrench-tools-maintenance.jpg",
-    },
-    {
-      title: "Spark/Glow Ignition",
-      items: ["Ignition Coil/Ignition Coil Unit", "Spark Plug"],
-      image: "/spark-plug-ignition-coil.jpg",
-    },
-    {
-      title: "Steering",
-      items: ["Bellow/Seal"],
-      image: "/classic-car-steering-wheel.png",
-    },
-    {
-      title: "Wheel Drive",
-      items: ["Bellow"],
-      image: "/wheel-drive-bellow.jpg",
-    },
-  ]
+
+"use client";
+
+import { useState } from "react";
+import { Input } from "antd";
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useGetProductByEngineQuery } from "@/redux/features/products/productsApi";
+
+// --- Types ---
+interface Product {
+  id: string;
+  productName: string;
+  productImages: string[];
+  price: number;
+  brandName: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  iconUrl: string;
+  products: Product[];
+}
+
+interface Vehicle {
+  engineId: string;
+  engineCode: string;
+  modelName: string;
+  brandName: string;
+}
+
+interface VehicleProductsData {
+  vehicle: Vehicle;
+  categories: Category[];
+}
+
+interface VehicleProductsApiResponse {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: VehicleProductsData;
+}
+
+// --- Component ---
+export default function VehicleProductsPage() {
+  const [brandFilter, setBrandFilter] = useState("");
+  const searchParams = useSearchParams();
+  const engineId = searchParams.get("engineId") || "";
+
+  const router = useRouter();
+
+  // Handle product click
+  const handleProductClick = (productId: string) => {
+    router.push(`/product/${productId}`); // adjust the path to your Single Product page route
+  };
+
+  const { data: apiResponse, isLoading, isError } =
+    useGetProductByEngineQuery(engineId) as {
+      data?: VehicleProductsApiResponse;
+      isLoading: boolean;
+      isError: boolean;
+    };
+
+  if (isLoading) return <p className="text-center py-8">Loading...</p>;
+  if (isError || !apiResponse?.data) return <p className="text-center py-8">Failed to load products.</p>;
+
+  const { vehicle, categories } = apiResponse.data;
+
+  const filterByBrand = (products: Product[]) =>
+    brandFilter
+      ? products.filter((p) =>
+        p.brandName.toLowerCase().includes(brandFilter.toLowerCase())
+      )
+      : products;
 
   return (
-    <main className="min-h-screen bg-white p-8 container mx-auto">
-      <h1 className="text-3xl font-bold text-slate-900 mb-8 items-center ">ACE 4.9 (1NMBCFL)</h1>
+    <main className="min-h-screen bg-white dark:bg-black text-black dark:text-white p-4 md:p-8 container mx-auto">
+      {/* Vehicle Info */}
+      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 sm:mb-8">
+        {vehicle.brandName} {vehicle.modelName} ({vehicle.engineCode})
+      </h1>
 
-      <div className="flex gap-16">
-        {/* Left Sidebar */}
-        <div className="w-80 flex-shrink-0">
-          <div className="border border-slate-300 rounded p-6">
-            <label className="block text-sm font-semibold text-slate-900 mb-4">Select Brand:</label>
+      <div className="flex flex-col md:flex-row gap-6 md:gap-12">
+        {/* Sidebar */}
+        <div className="w-full md:w-80 flex-shrink-0">
+          <div className="border border-gray-300 dark:border-gray-700 rounded p-4 md:p-6 bg-white dark:bg-gray-900">
+            <label className="block text-sm font-semibold mb-2">Filter Brand:</label>
             <Input
               type="text"
-              placeholder=""
-              value={brand}
-              onChange={(e) => setBrand(e.target.value)}
-              className="w-full border-slate-300 mb-6"
+              placeholder="Enter brand"
+              value={brandFilter}
+              onChange={(e) => setBrandFilter(e.target.value)}
+              className="w-full mb-4"
             />
-            <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">Show All</button>
+            <button
+              onClick={() => setBrandFilter("")}
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-500 text-sm font-medium"
+            >
+              Show All
+            </button>
           </div>
         </div>
 
-        {/* Main Grid */}
-        <div className="flex-1">
-          <div className="grid grid-cols-2 gap-8">
-            {categories.map((category, index) => (
-              <div key={index} className="flex gap-4">
-                {/* Icon */}
-                <div className="flex-shrink-0">
-                  <Image
-                    src={category.image || "/placeholder.svg"}
-                    alt={category.title}
-                    className="w-20 h-20 object-contain"
-                  />
-                </div>
-
-                {/* Content */}
-                <div className="flex-1">
-                  <h3 className="font-semibold text-slate-900 mb-2">{category.title}</h3>
-                  <ul className="space-y-1">
-                    {category.items.map((item, itemIndex) => (
-                      <li key={itemIndex} className="text-sm text-blue-600 hover:text-blue-700 cursor-pointer">
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+        {/* Products Grid */}
+        <div className="flex-1 space-y-6 md:space-y-8">
+          {categories.map((category: Category) => (
+            <div key={category.id}>
+              {/* Category Header */}
+              <div className="flex items-center gap-2 mb-2 md:mb-4">
+                <Image
+                  src={category.iconUrl || "/placeholder.svg"}
+                  alt={category.name}
+                  width={32}
+                  height={32}
+                  className="object-contain"
+                />
+                <h2 className="text-lg md:text-xl font-semibold">{category.name}</h2>
               </div>
-            ))}
-          </div>
+
+              {/* Products Grid */}
+              <div
+                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 auto-rows-fr">
+                {filterByBrand(category.products).map((product: Product) => (
+                  <div
+                    onClick={() => handleProductClick(product.id)}
+                    key={product.id}
+                    className="border dark:border-gray-700 rounded-lg p-3 flex flex-col hover:shadow-lg transition bg-white dark:bg-gray-900"
+                  >
+                    <div className="w-full aspect-[4/3] relative mb-2">
+                      <Image
+                        src={product.productImages[0] || "/placeholder.svg"}
+                        alt={product.productName}
+                        fill
+                        className="object-contain rounded"
+                      />
+                    </div>
+                    <h3 className="font-medium text-sm sm:text-base mb-1 line-clamp-2">
+                      {product.productName}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-1">
+                      Brand: {product.brandName}
+                    </p>
+                    <p className="font-semibold text-sm sm:text-base">${product.price.toFixed(2)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </main>
-  )
+  );
 }
