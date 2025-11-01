@@ -2,38 +2,23 @@
 import { IoArrowForward } from "react-icons/io5";
 import image from '../../../../../public/slide-image.png'
 import ProductCart, { Product } from "@/components/Home/ProductCart";
-import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
-import mobile from '../../../../../public/mobile.png'
-import mobile2 from '../../../../../public/mobile2.png'
-import mobile3 from '../../../../../public/mobile3.png'
-import Image from "next/image";
-import { useState } from "react";
-import { MdOutlineArrowBackIosNew, MdOutlineArrowForwardIos } from "react-icons/md";
+
+// import { useState } from "react";
 import { useGetProductsByCategoryQuery } from "@/redux/features/categories/categoriesApi";
 import { useParams } from "next/navigation";
-import { Swiper as SwiperClass } from 'swiper';
+// import { Swiper as SwiperClass } from 'swiper';
 import ProductSkeleton from "@/utils/ProductSkeleton";
 import Link from "next/link";
 
 const Category = () => {
-  const [swiper, setSwiper] = useState<SwiperClass | null>(null);
-  const [select, setSelect] = useState<string | null>(null);
+  // const [swiper, setSwiper] = useState<SwiperClass | null>(null);
+  // const [select, setSelect] = useState<string | null>(null);
 
   const params = useParams();
   const categoryId = params?.id as string; // <-- get category id from the route
   const { data: productData, isLoading: prodLoading } = useGetProductsByCategoryQuery(categoryId ?? "");
   const products: Product[] = productData?.data ?? [];
-
-  const items = [
-    { src: mobile, alt: 'Engine Oil', title: 'Engine Oil' },
-    { src: mobile2, alt: 'Exhaust', title: 'Exhaust' },
-    { src: mobile3, alt: 'Spark Plug', title: 'Spark Plug' },
-    { src: mobile, alt: 'Head Light', title: 'Head Light' },
-    { src: mobile3, alt: 'Wheel', title: 'Wheel' },
-    { src: mobile2, alt: 'Engine', title: 'Engine' },
-    { src: mobile, alt: 'Spark Plug', title: 'Spark Plug' },
-  ];
 
   return (
     <div className="container mx-auto px-4 md:px-0 py-8 md:py-16">
@@ -56,42 +41,6 @@ const Category = () => {
         <div className="xl:w-[60%] h-[400px] bg-cover bg-center" style={{ backgroundImage: `url(${image.src})` }}></div>
       </div>
 
-      {/* ---------- Brands Section (Static) ---------- */}
-      <div>
-        <h2 className=" text-3xl lg:text-4xl xl:text-6xl text-center mt-14 md:mt-20">Brands</h2>
-      </div>
-
-      {/* ---------- Categories Carousel ---------- */}
-      <div className=" flex justify-between items-center gap-5 mt-8 md:mt-14 mb-8">
-        <button onClick={() => swiper?.slidePrev()}>
-          <MdOutlineArrowBackIosNew className="cursor-pointer w-6 md:w-10 h-6 md:h-10" />
-        </button>
-        <Swiper
-          spaceBetween={30}
-          breakpoints={{
-            1200: { slidesPerView: 5 },
-            1024: { slidesPerView: 3 },
-            800: { slidesPerView: 3 },
-            600: { slidesPerView: 3 },
-            480: { slidesPerView: 2 },
-            320: { slidesPerView: 1 },
-          }}
-          onSwiper={(swiperInstance) => setSwiper(swiperInstance)}
-          className="flex"
-        >
-          {items.map((item, index) => (
-            <SwiperSlide key={index}>
-              <div onClick={() => setSelect(item.title)} className={`${item.title === select && " "} flex flex-col items-center justify-center  rounded cursor-pointer`}>
-                <Image src={item.src} alt={item.alt} width={500} height={500} className="dark:text-white w-52" />
-                <h3 className="text-xl text-center mt-4 dark:text-white">{item.title}</h3>
-              </div>
-            </SwiperSlide>
-          ))}
-        </Swiper>
-        <button onClick={() => swiper?.slideNext()}>
-          <MdOutlineArrowForwardIos className="cursor-pointer w-6 md:w-10 h-6 md:h-10" />
-        </button>
-      </div>
 
       {/* ---------- Explore Products Section (Dynamic) ---------- */}
       <div className=" pt-16">
