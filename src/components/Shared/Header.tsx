@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import Cookies from "js-cookie";
-import { ConfigProvider, Input, message } from "antd";
+import { ConfigProvider, Input, } from "antd";
 import { FiSearch } from "react-icons/fi";
 import { IoIosHeartEmpty } from "react-icons/io";
 import { PiShoppingCartLight } from "react-icons/pi";
@@ -22,10 +22,11 @@ import { useGetCartQuery } from "@/redux/features/cart/cartApi";
 import { useGetWishlistQuery } from "@/redux/features/wishlist/wishlistApi";
 import { useSwitchUserRoleMutation } from "@/redux/features/auth/switchRoleApi";
 import { RootState } from "@/redux/store";
-
+import { App } from "antd";
 const Header = () => {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { message } = App.useApp();
 
   const user = useSelector((state: RootState) => state.logInUser?.user);
 
@@ -172,14 +173,24 @@ const Header = () => {
           </Link>
 
           {/* Desktop Links */}
-          <div className="hidden lg:flex items-center justify-between gap-12">
-            <Link href="/" className="text-lg dark:text-white">Home</Link>
-            <Link href="/contact" className="text-lg dark:text-white">Contact</Link>
-            <Link href="/about" className="text-lg dark:text-white">About</Link>
+          {/* Desktop Links */}
+          <div className="hidden lg:flex items-center justify-between gap-12 text-black dark:text-white">
+            <Link href="/" className="text-lg hover:text-primary no-underline">
+              Home
+            </Link>
+            <Link href="/contact" className="text-lg hover:text-primary no-underline">
+              Contact
+            </Link>
+            <Link href="/about" className="text-lg hover:text-primary no-underline">
+              About
+            </Link>
             {!token && (
-              <Link href="/auth/login" className="text-lg dark:text-white">Log In</Link>
+              <Link href="/auth/login" className="text-lg hover:text-primary no-underline">
+                Log In
+              </Link>
             )}
           </div>
+
 
           {/* Search, Wishlist, Cart, User */}
           <div className="hidden w-[380px] lg:flex items-center justify-between gap-4">

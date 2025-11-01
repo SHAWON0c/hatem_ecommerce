@@ -1,3 +1,5 @@
+
+
 // redux/features/product/seller/productApi.ts
 import { baseApi } from "@/redux/api/baseApi";
 
@@ -9,7 +11,7 @@ export interface SellerProduct {
   price: number;
   discount: number;
   stock: number;
-  productImages: string[];
+  productImages: string[];  // Array of image URLs
   isVisible: boolean;
   createdAt: string;
   updatedAt: string;
@@ -31,16 +33,58 @@ export interface SellerProductsResponse {
   };
 }
 
-// 🧩 API endpoint
+// ✅ Type for delete product response
+export interface DeleteProductResponse {
+  success: boolean;
+  statusCode: number;
+  message: string;
+}
+
+// ✅ Type for add product response
+export interface AddProductResponse {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: SellerProduct;  // Assuming the product returned is similar to SellerProduct
+}
+
+// 🧩 API endpoints
 export const productApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    // Fetch the products of the seller
     getMyProducts: builder.query<SellerProductsResponse, void>({
       query: () => ({
         url: "/products/my-products",
         method: "GET",
       }),
     }),
+
+    // Delete a product by ID
+    deleteProduct: builder.mutation<DeleteProductResponse, string>({
+      query: (productId) => ({
+        url: `/products/${productId}`,
+        method: "DELETE",
+      }),
+    }),
+
+    // Add a new product (with FormData for file uploads)
+    addProduct: builder.mutation<AddProductResponse, FormData>({
+      query: (formData) => ({
+        url: "/products",
+        method: "POST",
+        body: formData, // Passing FormData directly
+      }),
+    }),
+
+    updateProduct: builder.mutation<AddProductResponse, { productId: string; formData: FormData }>({
+      query: ({ productId, formData }) => ({
+        url: `/products/${productId}`, // use backticks for template string
+        method: "PATCH",              // PATCH instead of POST
+        body: formData,               // Passing FormData
+      }),
+    }),
+
   }),
 });
 
-export const { useGetMyProductsQuery } = productApi;
+export const { useGetMyProductsQuery, useDeleteProductMutation, useAddProductMutation , useUpdateProductMutation } = productApi;
