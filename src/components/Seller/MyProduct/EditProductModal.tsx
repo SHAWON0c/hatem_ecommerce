@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Form, Input, Upload, Spin, Modal, message } from "antd";
+import { Spin, Modal, message, Upload } from "antd";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
@@ -10,297 +10,358 @@ import Heading from "@tiptap/extension-heading";
 import Image from "next/image";
 import { IoMdArrowRoundBack } from "react-icons/io";
 import { SlCloudUpload } from "react-icons/sl";
-
 import TipTapMenu from "./TipTapMenu";
+import CarAndCategorySelector from "./SelectorBlock";
+
+
 import { useUpdateProductMutation } from "@/redux/features/seller/product/productApi";
 import { useGetSingleProductQuery } from "@/redux/features/products/productsApi";
 
-// Types
-interface EditProductModalProps {
-    isModalOpen: boolean;
-    handleOk: () => void;
-    handleCancel: () => void;
-    productId: string;
+// import { Section, OEMReference, ShippingInfo } from "@/types/productTypes";
+// types/productTypes.ts
+
+export interface Field {
+  fieldName: string;
+  valueString?: string;
+  valueFloat?: number;
+  valueType: "string" | "float";
 }
 
-interface ProductFormValues {
-    productName?: string;
-    price?: number | string;
-    discount?: number | string;
-    stock?: number | string;
-    description?: string;
+export interface SubSection {
+  sectionName: string;
+  fields: Field[];
+}
+
+export interface Section {
+  sectionName: string;
+  fields: Field[];
+  subSections?: SubSection[]; // optional
+}
+
+export interface OEMReference {
+  type: "OE" | "INTERNAL";
+  number: string;
+  brandId?: string;
+}
+
+export interface ShippingInfo {
+  countryCode: string;
+  countryName: string;
+  carrier: string;
+  cost: number;
+  deliveryMin?: number; // optional
+  deliveryMax?: number; // optional
+  isDefault?: boolean;
+}
+
+
+interface EditProductModalProps {
+  isModalOpen: boolean;
+  handleOk: () => void;
+  handleCancel: () => void;
+  productId: string;
 }
 
 interface SellerProduct {
-    id: string;
-    sellerId: string;
-    categoryId: string;
-    brandId: string;
-    productName: string;
-    description: string;
-    price: number;
-    discount: number;
-    stock: number;
-    productImages: string[];
-    isVisible: boolean;
-    totalRating?: number;
-    avgRating?: number;
-    totalSold?: number;
-    //   sections?: any[];
-    //   references?: any[];
-    //   shippings?: any[];
-    //   fitVehicles?: any[];
-    createdAt: string;
-    updatedAt: string;
-    seller?: {
-        userId: string;
-        companyName: string;
-        logo: string | null;
-    };
-    category?: {
-        id: string;
-        name: string;
-    };
-    brand?: {
-        id: string;
-        brandName: string;
-        brandImage: string | null;
-    };
-    similarProducts?: {
-        id: string;
-        companyName: string;
-        productName: string;
-        image: string;
-        price: number;
-        inStock: boolean;
-    }[];
+  id: string;
+  categoryId?: string;
+  brandId?: string;
+  productName: string;
+  description: string;
+  price: number;
+  discount: number;
+  stock: number;
+  isVisible: boolean;
 }
 
-const { TextArea } = Input;
+interface Product {
+  id: string;
+  categoryId?: string;
+  brandId?: string;
+  productName?: string;
+  description?: string;
+  price?: number;
+  discount?: number;
+  stock?: number;
+  isVisible?: boolean;
+  productImages?: string[];
+}
 
 const EditProductModal: React.FC<EditProductModalProps> = ({
-    isModalOpen,
-    handleOk,
-    handleCancel,
-    productId,
+  isModalOpen,
+  handleOk,
+  handleCancel,
+  productId,
 }) => {
-    const [form] = Form.useForm<ProductFormValues>();
-    const [nextComponent, setNextComponent] = useState<"details" | "description">("details");
-    const [profilePic, setProfilePic] = useState<File | null>(null);
+  const [nextComponent, setNextComponent] = useState<"details" | "description">("details");
+  const [profilePic, setProfilePic] = useState<File | null>(null);
+  const [productName, setProductName] = useState("");
+  const [price, setPrice] = useState<number | "">("");
+  const [discount, setDiscount] = useState<number | "">("");
+  const [stock, setStock] = useState<number | "">("");
+  const [loading, setLoading] = useState(false);
+//   const [form] = Form.useForm();
 
-    const profilePicUrl = profilePic ? URL.createObjectURL(profilePic) : null;
+  // Shared product details
 
-    const { data, isLoading, isError } = useGetSingleProductQuery(productId);
-    const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
+  
+//   const [sections, setSections] = useState<Section[]>([]);
+//   const [oemReferences, setOemReferences] = useState<OEMReference[]>([]);
+//   const [shippingInfo, setShippingInfo] = useState<ShippingInfo[]>([]);
 
-    // TipTap editor
-    const editor = useEditor({
-        extensions: [
-            StarterKit.configure({
-                bulletList: { HTMLAttributes: { class: "list-disc ml-2" } },
-                heading: false,
-            }),
-            Highlight.configure({ HTMLAttributes: { class: "my-custom-class" } }),
-            TextAlign.configure({ types: ["heading", "paragraph"] }),
-            Heading.configure({ levels: [1, 2, 3] }),
-        ],
-        content: "",
-        editorProps: { attributes: { class: "min-h-[400px] rounded-md bg-slate-50 py-2 px-3" } },
-    });
+  // Car & category selector
+  const [selectedValues, setSelectedValues] = useState<{
+    year?: string;
+    brandId?: string;
+    brandName?: string;
+    modelId?: string;
+    modelName?: string;
+    hp?: string;
+    categoryId?: string;
+  }>({});
 
-    // Prefill form
-    useEffect(() => {
-        if (data?.data) {
-            const product = data.data;
-            form.setFieldsValue({
-                productName: product.productName,
-                price: product.price,
-                discount: product.discount,
-                stock: product.stock,
-                description: product.description,
-            });
+  const profilePicUrl = profilePic ? URL.createObjectURL(profilePic) : null;
 
-            if (product.description && editor) {
-                editor.commands.setContent(product.description);
-            }
-        }
-    }, [data, form, editor]);
+  // API calls
+  const { data, isLoading, isError } = useGetSingleProductQuery(productId);
+  const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
 
-    // const handleProfilePicUpload = (e: any) => setProfilePic(e.file);
+  // TipTap editor
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({ bulletList: { HTMLAttributes: { class: "list-disc ml-2" } }, heading: false }),
+      Highlight.configure({ HTMLAttributes: { class: "my-custom-class" } }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Heading.configure({ levels: [1, 2, 3] }),
+    ],
+    content: "",
+    editorProps: {
+      attributes: { className: "min-h-[400px] rounded-md bg-slate-50 py-2 px-3" },
+    },
+  });
 
-    const handleSubmit = async () => {
-        try {
-            const values = await form.validateFields();
-            if (!data?.data) return message.error("Product data not loaded.");
+  // Prefill product data
+  useEffect(() => {
+    if (data?.data) {
+      const product = {
+        ...(data.data as Product),
+        categoryId: data.data.categoryId || "",
+        brandId: data.data.brandId || "",
+      } as SellerProduct;
 
-            // const product: SellerProduct = data.data;
-            const product = data.data as SellerProduct;
+      setProductName(product.productName);
+      setPrice(product.price);
+      setDiscount(product.discount);
+      setStock(product.stock);
+      if (product.description && editor) editor.commands.setContent(product.description);
+    }
+  }, [data, editor]);
 
+  const handleSelectChange = (values: typeof selectedValues) => setSelectedValues(values);
 
-            const bodyData = {
-                productName: values.productName ?? product.productName,
-                price: values.price ?? product.price,
-                discount: values.discount ?? product.discount,
-                stock: values.stock ?? product.stock,
-                description: editor?.getHTML() || product.description,
-                isVisible: product.isVisible,
-                categoryId: product.categoryId,
-                brandId: product.brandId,
-            };
+  // Submit updated product
+  const handleSubmit = async () => {
+    if (!data?.data) return message.error("Product data not loaded.");
 
-            const formData = new FormData();
-            formData.append("bodyData", JSON.stringify(bodyData));
+    try {
+      setLoading(true);
+      const product = {
+        ...(data.data as Product),
+        categoryId: data.data.categoryId || "",
+        brandId: data.data.brandId || "",
+      } as SellerProduct;
 
-            if (profilePic) {
-                formData.append("productImages", profilePic);
-            }
+      const bodyData = {
+        categoryId: selectedValues.categoryId || product.categoryId,
+        brandId: selectedValues.brandId || product.brandId,
+        modelId: selectedValues.modelId || undefined,
+        modelName: selectedValues.modelName || undefined,
+        year: selectedValues.year || undefined,
+        hp: selectedValues.hp || undefined,
+        brandName: selectedValues.brandName || undefined,
 
-            await updateProduct({ productId, formData }).unwrap();
-            message.success("Product updated successfully!");
-            handleOk();
-        } catch (error) {
-            console.error(error);
-            message.error("Failed to update product");
-        }
-    };
+        productName: productName || product.productName,
+        price: price !== "" ? Number(price) : product.price,
+        discount: discount !== "" ? Number(discount) : product.discount,
+        stock: stock !== "" ? Number(stock) : product.stock,
+        description: editor?.getHTML() || product.description,
+        isVisible: product.isVisible,
 
-    return (
-        <Modal
-            closable
-            className="w-full md:w-[800px]"
-            footer={false}
-            width={1000}
-            open={isModalOpen}
-            onCancel={handleCancel}
-        >
-            <div className="container mx-auto p-5">
-                <div className="flex items-center justify-between mb-2 mt-3">
-                    {nextComponent !== "details" && (
-                        <IoMdArrowRoundBack
-                            onClick={() => setNextComponent("details")}
-                            className="mb-4 cursor-pointer"
-                            size={30}
-                        />
-                    )}
-                    <h2 className="text-2xl font-semibold mb-4">Edit Product</h2>
-                </div>
+        // sections,
+        // references: oemReferences,
+        // shipping: shippingInfo,
+      };
 
-                {isLoading ? (
-                    <div className="flex justify-center py-10">
-                        <Spin size="large" />
-                    </div>
-                ) : isError ? (
-                    <p className="text-red-500">Failed to load product details.</p>
-                ) : nextComponent === "details" ? (
-                    <>
-                        {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-8">
-                            <div className="flex items-center w-full">
-                                <span className="bg-[#f56100] py-[11px] px-4 text-white">1</span>
-                                <Select placeholder="Year" className="w-full" />
-                            </div>
-                            <div className="flex items-center w-full">
-                                <span className="bg-[#f56100] py-[11px] px-4 text-white">2</span>
-                                <Select placeholder="Brand" className="w-full" />
-                            </div>
-                            <div className="flex items-center w-full">
-                                <span className="bg-[#f56100] py-[11px] px-4 text-white">3</span>
-                                <Select placeholder="Model" className="w-full" />
-                            </div>
-                            <div className="flex items-center w-full">
-                                <span className="bg-[#f56100] py-[11px] px-4 text-white">4</span>
-                                <Select placeholder="Engine Power" className="w-full" />
-                            </div>
-                        </div> */}
+      const formData = new FormData();
+      formData.append("bodyData", JSON.stringify(bodyData));
+      if (profilePic) formData.append("productImages", profilePic);
 
-                        <div className="mt-8">
-                            <Form form={form} layout="vertical" className="mx-auto p-5 bg-white rounded-md">
-                                <Form.Item label="Product Name" name="productName">
-                                    <Input placeholder="Enter product name" />
-                                </Form.Item>
+      await updateProduct({ productId, formData }).unwrap();
+      message.success("✅ Product updated successfully!");
+      handleOk();
+    } catch (err) {
+      console.error(err);
+      message.error("❌ Failed to update product");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-                                <Form.Item label="Price" name="price">
-                                    <Input placeholder="Enter price" />
-                                </Form.Item>
+  return (
+    <Modal
+      closable
+      className="w-full md:w-[800px]"
+      footer={false}
+      width={1000}
+      open={isModalOpen}
+      onCancel={handleCancel}
+    >
+      <div className="container mx-auto p-5">
+        <div className="flex items-center justify-between mb-2 mt-3">
+          {nextComponent !== "details" && (
+            <IoMdArrowRoundBack
+              onClick={() => setNextComponent("details")}
+              className="mb-4 cursor-pointer"
+              size={30}
+            />
+          )}
+          <h2 className="text-2xl font-semibold mb-4">Edit Product</h2>
+        </div>
 
-                                <Form.Item label="Discount" name="discount">
-                                    <Input placeholder="Enter discount" />
-                                </Form.Item>
+        <h2 className="mb-4">Select Car and Category</h2>
+        <CarAndCategorySelector onSelectChange={handleSelectChange} />
 
-                                <Form.Item label="Stock" name="stock">
-                                    <Input placeholder="Enter stock quantity" />
-                                </Form.Item>
-
-                                <Form.Item label="Description" name="description">
-                                    <TextArea rows={4} />
-                                </Form.Item>
-
-                                <Form.Item>
-                                    <button
-                                        onClick={() => setNextComponent("description")}
-                                        className="w-full bg-primary py-3 rounded-2xl mt-3 text-white cursor-pointer"
-                                    >
-                                        Next
-                                    </button>
-                                </Form.Item>
-                            </Form>
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <div>
-                            <h2 className="text-xl">Description</h2>
-                            <div className="h-auto rounded-2xl border border-dashed border-primary mt-4 mb-5 px-3 py-3">
-                                <TipTapMenu editor={editor} />
-                                <EditorContent editor={editor} />
-                            </div>
-                        </div>
-
-                        <div className="mb-5">
-                            <h2 className="text-xl">Product Images</h2>
-                            <div className="h-30 flex items-center justify-center rounded-2xl border border-dashed border-[#f56100] mt-4">
-                                {profilePic ? (
-                                    <div className="relative">
-                                        <Image
-                                            src={profilePicUrl || ""}
-                                            width={500}
-                                            height={500}
-                                            alt="product image"
-                                            className="border-4 w-32"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setProfilePic(null)}
-                                            className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center cursor-pointer"
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <Upload
-                                        showUploadList={false}
-                                        beforeUpload={(file: File) => {
-                                            setProfilePic(file); // update state directly
-                                            return false; // prevent automatic upload
-                                        }}
-                                    >
-                                        <SlCloudUpload className="cursor-pointer" size={32} />
-                                    </Upload>
-                                )}
-                            </div>
-                        </div>
-
-                        <button
-                            onClick={handleSubmit}
-                            disabled={isUpdating}
-                            className="w-full bg-primary py-3 rounded-2xl mt-3 text-white cursor-pointer"
-                        >
-                            {isUpdating ? "Updating..." : "Upload Product"}
-                        </button>
-                    </>
-                )}
+        {isLoading ? (
+          <div className="flex justify-center py-10">
+            <Spin size="large" />
+          </div>
+        ) : isError ? (
+          <p className="text-red-500">Failed to load product details.</p>
+        ) : nextComponent === "details" ? (
+          <div className="mt-8">
+            {/* Basic product fields */}
+            <div className="mb-4">
+              <label className="block mb-1">Product Name</label>
+              <input
+                value={productName}
+                onChange={(e) => setProductName(e.target.value)}
+                placeholder="Enter product name"
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+              />
             </div>
-        </Modal>
-    );
+
+            <div className="mb-4">
+              <label className="block mb-1">Price</label>
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.valueAsNumber)}
+                placeholder="Enter price"
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block mb-1">Discount</label>
+              <input
+                type="number"
+                value={discount}
+                onChange={(e) => setDiscount(e.target.valueAsNumber)}
+                placeholder="Enter discount"
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block mb-1">Stock</label>
+              <input
+                type="number"
+                value={stock}
+                onChange={(e) => setStock(e.target.valueAsNumber)}
+                placeholder="Enter stock quantity"
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+              />
+            </div>
+
+
+{/*       
+            <ProductDetailsForm
+              form={form}
+              productId={productId}
+              sections={sections}
+              setSections={setSections}
+              oemReferences={oemReferences}
+              setOemReferences={setOemReferences}
+              shippingInfo={shippingInfo}
+              setShippingInfo={setShippingInfo}
+              brandId={selectedValues.brandId}
+            /> */}
+
+            <button
+              onClick={() => setNextComponent("description")}
+              className="w-full bg-primary py-3 rounded-2xl mt-3 text-white cursor-pointer"
+            >
+              Next
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Description */}
+            <div>
+              <h2 className="text-xl">Description</h2>
+              <div className="h-auto rounded-2xl border border-dashed border-primary mt-4 mb-5 px-3 py-3">
+                <TipTapMenu editor={editor} />
+                <EditorContent editor={editor} />
+              </div>
+            </div>
+
+            {/* Image Upload */}
+            <div className="mb-5">
+              <h2 className="text-xl">Product Images</h2>
+              <div className="h-30 flex items-center justify-center rounded-2xl border border-dashed border-[#f56100] mt-4">
+                {profilePic ? (
+                  <div className="relative">
+                    <Image
+                      src={profilePicUrl || ""}
+                      width={500}
+                      height={500}
+                      alt="product image"
+                      className="border-4 w-32"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setProfilePic(null)}
+                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center cursor-pointer"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <Upload
+                    showUploadList={false}
+                    beforeUpload={(file: File) => {
+                      setProfilePic(file);
+                      return false;
+                    }}
+                  >
+                    <SlCloudUpload className="cursor-pointer" size={32} />
+                  </Upload>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              disabled={loading || isUpdating}
+              className="w-full bg-primary py-3 rounded-2xl mt-3 text-white cursor-pointer"
+            >
+              {loading || isUpdating ? "Updating..." : "Upload Product"}
+            </button>
+          </>
+        )}
+      </div>
+    </Modal>
+  );
 };
 
 export default EditProductModal;
